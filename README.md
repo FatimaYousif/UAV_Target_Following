@@ -1,6 +1,7 @@
 The other MRS-CTU files/folders from their 'old_system' branch (of all the repositories) is given in this link:
 https://drive.google.com/drive/u/8/my-drive
 
+Note: Every package is inside catkin_ws/src/
 
 ### TO LAUNCH
 ```bash
@@ -53,6 +54,11 @@ sleep 2
 rosservice call /$UAV_NAME/mavros/set_mode 0 offboard
 ```
 
+```bash
+cd ~/catkin_ws/src/Simulation/one_drone_gps_realsense
+./main.py
+```
+
 ## Others:
 ```bash
 tmux list-sessions
@@ -66,12 +72,9 @@ ps aux | grep ros
 
 
 ## Deprecated or Not Recommended Commands
-~~roslaunch mrs_uav_status status.launch~~
+~~roslaunch mrs_uav_status status.launch~~  <br> <br>
+<p><del>cd /catkin_ws/src/uav_control_test/src/data/Random_EXPS</del></p>
+<p><del>sudo chmod +x main.py</del></p>
+<p><del>./main.py</del></p>
 
-~~cd /catkin_ws/src/uav_control_test/src/data/Random_EXPS~~
-~~sudo chmod +x main.py~~
-~~./main.py~~
-
-~~cd ~/catkin_ws/src/Simulation/one_drone_gps_realsense~~
-~~./main.py~~
 
