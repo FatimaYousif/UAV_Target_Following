@@ -44,6 +44,10 @@ roslaunch mrs_uav_general automatic_start.launch
 roslaunch ultralytics_ros tracker.launch debug:=true yolo_model:=yolov8n.pt
 ```
 
+<br>
+Note: You probably would need to do the following twice (x2) if the drone doesn't offboard <br>
+<br>
+
 ```bash
 rosservice call /$UAV_NAME/mavros/cmd/arming 1
 ```
