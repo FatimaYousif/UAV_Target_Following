@@ -2,6 +2,7 @@
 
 import rospy
 
+from std_msgs.msg import Int32
 from geometry_msgs.msg import Point, PoseStamped, Vector3, TransformStamped
 from sensor_msgs.msg import Image, CameraInfo, Imu  # Replace with your target detection message type
 from vision_msgs.msg import Detection2DArray
@@ -22,6 +23,7 @@ from cv_bridge import CvBridge
 import time
 import tf
 import pyrealsense2 as rs2
+
 
 class Point:
     def __init__(self, x=0, y=0):
@@ -71,7 +73,7 @@ class LostCounter:
 class FollowTarget:
 	def __init__(self):
 		rospy.init_node('follow_target', anonymous=True)
-		print("Node started")
+		# print("Node started")
 
 		self.KF = KalmanFilter(dim_x=6, dim_z=4)
 		#states = s(t) = (x,y,vx,vy,size_x,size_y)
@@ -120,7 +122,7 @@ class FollowTarget:
 		self.target_position = Point()
 		self.target_hdg = 0
 		self.altitude = 0
-		self.depth = 0
+		# self.depth = 0
 		self.target_detected = False
 		self.first_detection = False
 		self.bridge = CvBridge()
@@ -156,7 +158,7 @@ class FollowTarget:
 		self.last_update_time = time.time()
 		self.last_update_time_KF = time.time()
 		self.current_value = 0.0
-		self.not_using_depth = True
+		# self.not_using_depth = True
 
 
 		self.fx = 0.1  # Focal length in the x-axis (from camera_info)
@@ -168,7 +170,7 @@ class FollowTarget:
 
 		self.distance = 0
 		self.dist_horizontal = 0
-		self.previous_depth = 0
+		# self.previous_depth = 0
 
 		self.pitch_camera = np.pi/6
 
@@ -192,7 +194,7 @@ class FollowTarget:
 		self.odemetry_sub = rospy.Subscriber('/uav1/mavros/local_position/pose', PoseStamped, self.odemetry_callback)
 		self.distance_sub = rospy.Subscriber("/gazebo/model_states", ModelStates, self.model_states_callback)
 		self.altitude_sub = rospy.Subscriber('/uav1/mavros/altitude', Altitude, self.get_altitude)
-		self.depth_sub = rospy.Subscriber('/uav1/rgbd_front_pitched/aligned_depth_to_color/image_raw', Image, self.depth_callback)
+		# self.depth_sub = rospy.Subscriber('/uav1/rgbd_front_pitched/aligned_depth_to_color/image_raw', Image, self.depth_callback)
 		self.target_sub = rospy.Subscriber('/detection_result', Detection2DArray, self.target_callback)
 		self.position_sub = rospy.Subscriber('/uav1/control_manager/heading', Float64Stamped, self.get_heading)
 		self.camera_info_sub = rospy.Subscriber('/uav1/rgbd_front_pitched/color/camera_info', CameraInfo, self.camera_info_callback)
@@ -202,7 +204,8 @@ class FollowTarget:
 		self.publisher = rospy.Publisher('/uav1/rosbag_data', PublishData, queue_size=1)
 		self.publish_pose = rospy.Publisher('uav1/target_pose', PoseStamped, queue_size=1)
 		self.publish_pose2 = rospy.Publisher('uav1/target_pose2', PoseStamped, queue_size=1)
-	
+
+		self.target_id_pub = rospy.Publisher('target_id_to_highlight', Int32, queue_size=1, latch=True)
 	
 	def calculate_relative_distance(self, u,v, target_height):
 		# Calculate the inverse of the intrinsic matrix
@@ -265,10 +268,10 @@ class FollowTarget:
 		Y_camera = (center_y - self.ppy)*z0 /self.fy
 		Z_camera = z0
 
-		print("\ndistance", distance)
-		print("center_x", center_x)
-		print("center_y", center_y)	
-		print("heading", heading)
+		# print("\ndistance", distance)
+		# print("center_x", center_x)
+		# print("center_y", center_y)	
+		# print("heading", heading)
 		
 
 		result = rs2.rs2_deproject_pixel_to_point(self.intrinsics, [center_x, center_y], distance)
@@ -300,8 +303,8 @@ class FollowTarget:
 		target_y = Y_world_prev + self.uav_pose.y
 
 		
-		print("\ncoordinate image frame", X_camera, Y_camera, Z_camera)
-		print("coordinate body frame\n", X_body, Y_body, Z_body)
+		# print("\ncoordinate image frame", X_camera, Y_camera, Z_camera)
+		# print("coordinate body frame\n", X_body, Y_body, Z_body)
 
 
 		point = PoseStamped()
@@ -522,29 +525,29 @@ class FollowTarget:
 
 		return velocity_msg
 
-	def get_depth(self,center_x,center_y):
-		#DEPTH PART
-		# Get depth information within a small neighborhood around the center of the bounding box
-		window_size = 5  # Adjust this value as needed
-		depth_matrix = None
-		if hasattr(self, 'depth_image'):
-			depth_matrix = self.depth_image[
-			int(center_y) - window_size : int(center_y) + window_size + 1,
-			int(center_x) - window_size : int(center_x) + window_size + 1,
-			]
-		if depth_matrix is None:
-			return 0
+	# def get_depth(self,center_x,center_y):
+	# 	#DEPTH PART
+	# 	# Get depth information within a small neighborhood around the center of the bounding box
+	# 	window_size = 5  # Adjust this value as needed
+	# 	depth_matrix = None
+	# 	if hasattr(self, 'depth_image'):
+	# 		depth_matrix = self.depth_image[
+	# 		int(center_y) - window_size : int(center_y) + window_size + 1,
+	# 		int(center_x) - window_size : int(center_x) + window_size + 1,
+	# 		]
+	# 	if depth_matrix is None:
+	# 		return 0
 			
-		# Create a copy of the depth_matrix to avoid the read-only error
-		depth_matrix_copy = np.copy(depth_matrix)
+	# 	# Create a copy of the depth_matrix to avoid the read-only error
+	# 	depth_matrix_copy = np.copy(depth_matrix)
 
-		# Replace NaN values with a placeholder value (-1.0) in the copy
-		depth_matrix_copy[np.isnan(depth_matrix_copy)] = -1.0
+	# 	# Replace NaN values with a placeholder value (-1.0) in the copy
+	# 	depth_matrix_copy[np.isnan(depth_matrix_copy)] = -1.0
 
-		# Calculate the approximate depth to the target by averaging the values in the depth_matrix
-		average_depth = np.mean(depth_matrix_copy[depth_matrix_copy != -1.0])
+	# 	# Calculate the approximate depth to the target by averaging the values in the depth_matrix
+	# 	average_depth = np.mean(depth_matrix_copy[depth_matrix_copy != -1.0])
 
-		return average_depth/1000
+	# 	return average_depth/1000
 	
 	def RateLimiter(self, new_value):
 
@@ -583,11 +586,11 @@ class FollowTarget:
 			self.filtered_value = self.alpha * new_value + (1 - self.alpha) * self.filtered_value
 		return self.filtered_value
 	
-	def depth_callback(self, msg):
-		try:
-			self.depth_image = self.bridge.imgmsg_to_cv2(msg, "passthrough")
-		except Exception as e:
-			rospy.logerr("Error converting depth image: %s", str(e))
+	# def depth_callback(self, msg):
+	# 	try:
+	# 		self.depth_image = self.bridge.imgmsg_to_cv2(msg, "passthrough")
+	# 	except Exception as e:
+	# 		rospy.logerr("Error converting depth image: %s", str(e))
 
 	def camera_info_callback(self, cameraInfo):
 		self.fx = cameraInfo.K[0]  # Focal length in the x-axis
@@ -764,6 +767,8 @@ class FollowTarget:
 				if delete is not None:
 					delete.update(999,0,0,0,0)
 				self.target_id = best_id
+				self.target_id_pub.publish(Int32(data=self.target_id))
+
 				target_bbox = detection.bbox
 				target_found = 1
 				self.target_lost = False
@@ -831,7 +836,8 @@ class FollowTarget:
 				new_object = Detected_Object(self.target_id,data.detections[0].bbox.center.x,data.detections[0].bbox.center.y,
 								 data.detections[0].bbox.size_x,data.detections[0].bbox.size_y)
 				self.detected_objects.append(new_object)
-
+				self.target_id_pub.publish(Int32(data=int(self.target_id)))
+				
 			# Check if the target is in the detection message
 			target_found = 0
 			for detection in data.detections:
@@ -855,9 +861,9 @@ class FollowTarget:
 				size_x = bounding_box.size_x
 				size_y = bounding_box.size_y
 
-				if target_found:
-					depth = self.get_depth(center_x,center_y)
-				else: depth = 0
+				# if target_found:
+				# 	depth = self.get_depth(center_x,center_y)
+				# else: depth = 0
 
 				#if depth > 4:
 				#	size_y = 1450/(depth)
@@ -906,30 +912,30 @@ class FollowTarget:
 				#distance_imm = self.target_world_coordinates_inverse(self.imm.x[0], self.imm.x[1])
 					
 
-				if target_found:
-					depth = self.get_depth(center_x,center_y)
-				else: depth = 0
+				# if target_found:
+				# 	depth = self.get_depth(center_x,center_y)
+				# else: depth = 0
 
-				#value = distance
-				self.not_using_depth = True
+				# #value = distance
+				# self.not_using_depth = True
 				
-				if depth > 3:
+				# if depth > 3:
 					#result = rs2.rs2_deproject_pixel_to_point(self.intrinsics, [center_x, center_y], depth)
 					#target_x, target_y = self.target_coordinates_test(depth,center_x,center_y,self.heading)
 					#self.KF_target.update([target_x, target_y])
 					#dist = np.sqrt((self.uav_pose.x - self.KF_target.x[0])**2 + (self.uav_pose.y - self.KF_target.x[1])**2 + (self.altitude-1)**2)
-					x = (center_x - self.ppx) /self.fx
-					y = (center_y - self.ppy) /self.fy
-					dist = np.sqrt(x**2 + y**2 + depth**2)
-					value = self.low_pass_filter(dist)
+				# 	x = (center_x - self.ppx) /self.fx
+				# 	y = (center_y - self.ppy) /self.fy
+				# 	dist = np.sqrt(x**2 + y**2 + depth**2)
+				# 	value = self.low_pass_filter(dist)
 						
-					self.not_using_depth = False
-					#value = 1450/self.KF.x[5]
-					#estimated_distance = self.translate_to_stabilized_frame(value)
+				# 	self.not_using_depth = False
+				# 	#value = 1450/self.KF.x[5]
+				# 	#estimated_distance = self.translate_to_stabilized_frame(value)
 
-					print("using depth", depth)				
-				else:
-					value = self.low_pass_filter(distance)
+				# 	print("using depth", depth)				
+				# else:
+				# 	value = self.low_pass_filter(distance)
 				
 				value = self.low_pass_filter(distance)
 
@@ -942,6 +948,7 @@ class FollowTarget:
 				self.publish_data.target_y = target_y
 				self.publish_data.estimated_target_x = self.KF_target.x[0]
 				self.publish_data.estimated_target_y = self.KF_target.x[1]
+				# print("DEPTH-----------")
 
 
 				#print("---- estimated target pose ----\n", self.KF_target.x[0], self.KF_target.x[1])
@@ -952,12 +959,14 @@ class FollowTarget:
 
 				self.dist_horizontal = np.sqrt(value**2 - (self.altitude)**2)
 				
-
-
+				
+				self.publish_data.horizontal_distance = self.dist_horizontal
+				
 
 				#self.publish_data.altitude = self.altitude
 				self.publish_data.estimated_distance= estimated_distance
-				self.publish_data.use_depth = not(self.not_using_depth)
+				# self.publish_data.use_depth = not(self.not_using_depth)
+				self.publish_data.use_depth = False
 				self.publish_data.center_x = center_x
 				self.publish_data.center_y = center_y
 				self.publish_data.controller_error = error
@@ -974,7 +983,7 @@ class FollowTarget:
 
 				if (self.adjustment_period > 0):
 					if not(self.target_lost):
-						print("initial")
+						# print("initial")
 						self.adjustment_period -= 1	
 					print("ADJUSTING", self.target_id)				
 					self.velocity_msg = self.create_velocity_msg(0, 0, 0, self.target_hdg, self.target_altitude, True)
@@ -1053,4 +1062,3 @@ if __name__ == '__main__':
 	follower.run()
 	#except rospy.ROSInterruptException:
 	#	pass
-
